@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction-Sync Online Prototype</title>
+    <!-- โหลด Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลดฟอนต์ภาษาไทย -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- โหลด Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            blue: '#3b82f6',
+                            red: '#ef4444',
+                            purple: '#8b5cf6',
+                            dark: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .grid-container {
+            width: 160px;
+            height: 160px;
+            display: grid;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #cbd5e1;
+            background-color: white;
+            transition: all 0.5s ease;
+        }
+
+        .grid-cell {
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        /* ลายทาง (Stripes) สำหรับแสดงความโปร่งแสง */
+        .pattern-blue {
+            background: linear-gradient(135deg, rgba(59,130,246,0.6) 25%, rgba(59,130,246,0.8) 25%, rgba(59,130,246,0.8) 50%, rgba(59,130,246,0.6) 50%, rgba(59,130,246,0.6) 75%, rgba(59,130,246,0.8) 75%, rgba(59,130,246,0.8) 100%);
+            background-size: 10px 10px;
+        }
+        
+        .pattern-red {
+            background: linear-gradient(135deg, rgba(239,68,68,0.6) 25%, rgba(239,68,68,0.8) 25%, rgba(239,68,68,0.8) 50%, rgba(239,68,68,0.6) 50%, rgba(239,68,68,0.6) 75%, rgba(239,68,68,0.8) 75%, rgba(239,68,68,0.8) 100%);
+            background-size: 10px 10px;
+        }
+        
+        .pattern-purple {
+            background: linear-gradient(135deg, rgba(139,92,246,0.7) 25%, rgba(139,92,246,0.9) 25%, rgba(139,92,246,0.9) 50%, rgba(139,92,246,0.7) 50%, rgba(139,92,246,0.7) 75%, rgba(139,92,246,0.9) 75%, rgba(139,92,246,0.9) 100%);
+            background-size: 10px 10px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10 px-6 py-4 flex justify-between items-center border-b border-slate-200">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue to-brand-purple flex items-center justify-center text-white font-bold text-xl shadow-md">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-brand-dark leading-tight">Fraction-Sync <span class="text-brand-purple">Online</span></h1>
+                <p class="text-xs text-slate-500">ต้นแบบนวัตกรรมสร้างมโนทัศน์การบวกลบเศษส่วน (CPA Approach)</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="randomizeQuest()" class="px-4 py-2 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-dice"></i> สุ่มโจทย์ใหม่
+            </button>
+            <button onclick="resetApp()" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> เริ่มใหม่
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center">
+        
+        <!-- Instruction Banner -->
+        <div id="instruction-banner" class="w-full max-w-4xl bg-white rounded-xl shadow-sm border-l-4 border-brand-blue p-4 mb-8 flex items-start gap-4 fade-in">
+            <div class="text-brand-blue text-2xl mt-1"><i class="fa-solid fa-chalkboard-user"></i></div>
+            <div>
+                <h3 class="font-bold text-lg mb-1" id="step-title">ขั้นที่ 1: กำหนดเศษส่วน (Concrete Stage)</h3>
+                <p class="text-slate-600" id="step-desc">ปรับเปลี่ยนตัวเลขเศษและส่วนด้านล่าง สังเกตภาพตาราง แผ่นแรกจะแบ่งแนวตั้ง แผ่นที่สองจะแบ่งแนวนอน เหมือนสื่อแผ่นโปร่งแสงจริง</p>
+            </div>
+        </div>
+
+        <!-- Fractions Input Area -->
+        <div class="w-full max-w-4xl flex flex-col md:flex-row justify-center items-center gap-8 mb-8">
+            
+            <!-- Fraction 1 (Blue/Vertical) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center w-full md:w-1/3 relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-blue text-white text-xs px-3 py-1 rounded-full font-medium">แผ่นที่ 1 (แนวตั้ง)</div>
+                
+                <!-- Visual Grid -->
+                <div id="grid-f1" class="grid-container mb-6"></div>
+                
+                <!-- Math Abstract -->
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-center gap-2">
+                        <button onclick="changeFrac(1, 'n', 1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-blue hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                        <div class="text-3xl font-bold text-brand-blue w-8 text-center" id="val-n1">1</div>
+                        <button onclick="changeFrac(1, 'n', -1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-blue hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                    </div>
+                    
+                    <div class="h-16 w-1 bg-slate-300 rounded transform rotate-12"></div>
+                    
+                    <div class="flex flex-col items-center gap-2">
+                        <button onclick="changeFrac(1, 'd', 1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-blue hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                        <div class="text-3xl font-bold text-slate-700 w-8 text-center" id="val-d1">2</div>
+                        <button onclick="changeFrac(1, 'd', -1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-blue hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Equation showing dynamic change -->
+                <div id="eq-f1" class="mt-4 text-sm font-medium text-slate-500 h-6 opacity-0 transition-opacity">
+                    1/2 × (3/3) = 3/6
+                </div>
+            </div>
+
+            <!-- Operator -->
+            <div class="text-4xl font-bold text-slate-400">
+                <i class="fa-solid fa-plus"></i>
+            </div>
+
+            <!-- Fraction 2 (Red/Horizontal) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center w-full md:w-1/3 relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-red text-white text-xs px-3 py-1 rounded-full font-medium">แผ่นที่ 2 (แนวนอน)</div>
+                
+                <!-- Visual Grid -->
+                <div id="grid-f2" class="grid-container mb-6"></div>
+                
+                <!-- Math Abstract -->
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-center gap-2">
+                        <button onclick="changeFrac(2, 'n', 1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-red hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                        <div class="text-3xl font-bold text-brand-red w-8 text-center" id="val-n2">1</div>
+                        <button onclick="changeFrac(2, 'n', -1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-red hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                    </div>
+                    
+                    <div class="h-16 w-1 bg-slate-300 rounded transform rotate-12"></div>
+                    
+                    <div class="flex flex-col items-center gap-2">
+                        <button onclick="changeFrac(2, 'd', 1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-red hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                        <div class="text-3xl font-bold text-slate-700 w-8 text-center" id="val-d2">3</div>
+                        <button onclick="changeFrac(2, 'd', -1)" class="w-8 h-8 rounded bg-slate-100 hover:bg-brand-red hover:text-white transition-colors flex justify-center items-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                    </div>
+                </div>
+
+                <!-- Equation showing dynamic change -->
+                <div id="eq-f2" class="mt-4 text-sm font-medium text-slate-500 h-6 opacity-0 transition-opacity">
+                    1/3 × (2/2) = 2/6
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mb-10 text-center">
+            <button id="btn-action" onclick="handleAction()" class="group relative px-8 py-4 bg-brand-purple text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
+                <span class="relative z-10 flex items-center gap-2" id="btn-text">
+                    <i class="fa-solid fa-layer-group"></i> วางซ้อนแผ่นตาราง (Sync!)
+                </span>
+                <div class="absolute inset-0 h-full w-full bg-white/20 scale-0 group-hover:scale-100 transition-transform rounded-full origin-center"></div>
+            </button>
+        </div>
+
+        <!-- Final Result Area (Hidden initially) -->
+        <div id="result-area" class="w-full max-w-4xl bg-white p-8 rounded-2xl shadow-md border border-slate-200 hidden flex-col items-center fade-in">
+            <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-equals text-brand-purple"></i> ผลลัพธ์การรวม (Abstract Stage)
+            </h3>
+            
+            <div id="final-grids-container" class="flex flex-wrap justify-center gap-4 mb-8">
+                <!-- Final grids injected here via JS -->
+            </div>
+            
+            <div class="bg-slate-50 px-8 py-4 rounded-xl border border-slate-200 text-center">
+                <div class="text-2xl font-bold text-slate-700" id="final-equation">
+                    <span class="text-brand-blue">3/6</span> + <span class="text-brand-red">2/6</span> = <span class="text-brand-purple">5/6</span>
+                </div>
+                <p class="text-sm text-slate-500 mt-2" id="final-explanation">ตารางย่อยทั้งหมดคือ 6 ช่อง แรเงาสีน้ำเงิน 3 ช่อง สีแดง 2 ช่อง รวมเป็น 5 ช่อง</p>
+            </div>
+        </div>
+        
+        <div class="h-20"></div> <!-- padding bottom -->
+    </main>
+
+    <script>
+        // State Management
+        let appState = {
+            step: 0, // 0: Input, 1: Synced (Pictorial), 2: Added (Abstract)
+            f1: { n: 1, d: 2 },
+            f2: { n: 1, d: 3 }
+        };
+
+        const MAX_D = 6; // Limit denominator to 6 for visual clarity
+        const MIN_D = 2;
+
+        // Elements
+        const elGridF1 = document.getElementById('grid-f1');
+        const elGridF2 = document.getElementById('grid-f2');
+        const elEqF1 = document.getElementById('eq-f1');
+        const elEqF2 = document.getElementById('eq-f2');
+        const elBtnAction = document.getElementById('btn-action');
+        const elBtnText = document.getElementById('btn-text');
+        const elResultArea = document.getElementById('result-area');
+        const elFinalGrids = document.getElementById('final-grids-container');
+        
+        const elStepTitle = document.getElementById('step-title');
+        const elStepDesc = document.getElementById('step-desc');
+
+        /**
+         * Render a fraction grid
+         * orientation: 'vertical', 'horizontal', 'synced-v', 'synced-h', 'final'
+         */
+        function renderGrid(container, n, d, orientation, crossD = 1, colorClass = 'bg-slate-500') {
+            container.innerHTML = '';
+            
+            let cols, rows;
+            let totalCells, filledCells = 0;
+
+            if (orientation === 'vertical') {
+                cols = d; rows = 1;
+                filledCells = n;
+            } else if (orientation === 'horizontal') {
+                cols = 1; rows = d;
+                filledCells = n;
+            } else if (orientation === 'synced-v') {
+                cols = d; rows = crossD;
+                filledCells = n * crossD;
+            } else if (orientation === 'synced-h') {
+                cols = crossD; rows = d;
+                filledCells = n * crossD;
+            }
+
+            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+            totalCells = rows * cols;
+
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell w-full h-full';
+                
+                let isFilled = false;
+                
+                if (orientation === 'vertical' || orientation === 'synced-v') {
+                    const colIndex = i % cols;
+                    if (colIndex < n) isFilled = true;
+                } else if (orientation === 'horizontal' || orientation === 'synced-h') {
+                    const rowIndex = Math.floor(i / cols);
+                    if (rowIndex < n) isFilled = true;
+                }
+
+                if (isFilled) {
+                    cell.classList.add(colorClass);
+                } else {
+                    cell.classList.add('bg-white');
+                }
+                
+                container.appendChild(cell);
+            }
+        }
+
+        function updateUI() {
+            // Update Numbers
+            document.getElementById('val-n1').innerText = appState.f1.n;
+            document.getElementById('val-d1').innerText = appState.f1.d;
+            document.getElementById('val-n2').innerText = appState.f2.n;
+            document.getElementById('val-d2').innerText = appState.f2.d;
+
+            if (appState.step === 0) {
+                // Stage: Concrete (Initial)
+                renderGrid(elGridF1, appState.f1.n, appState.f1.d, 'vertical', 1, 'pattern-blue');
+                renderGrid(elGridF2, appState.f2.n, appState.f2.d, 'horizontal', 1, 'pattern-red');
+                
+                elEqF1.style.opacity = '0';
+                elEqF2.style.opacity = '0';
+                elResultArea.classList.add('hidden');
+                
+                elBtnText.innerHTML = '<i class="fa-solid fa-layer-group"></i> วางซ้อนแผ่นตาราง (Sync!)';
+                elBtnAction.className = 'group relative px-8 py-4 bg-brand-purple text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden';
+                
+                elStepTitle.innerText = 'ขั้นที่ 1: กำหนดเศษส่วน (Concrete Stage)';
+                elStepDesc.innerText = 'ปรับเปลี่ยนตัวเลขเศษและส่วนด้านล่าง สังเกตภาพตาราง แผ่นแรกจะแบ่งแนวตั้ง แผ่นที่สองจะแบ่งแนวนอน เหมือนสื่อแผ่นโปร่งแสงจริง';
+                
+                // Enable controls
+                document.querySelectorAll('button[onclick^="changeFrac"]').forEach(b => b.disabled = false);
+                document.querySelectorAll('button[onclick^="changeFrac"]').forEach(b => b.classList.remove('opacity-50', 'cursor-not-allowed'));
+            } 
+            else if (appState.step === 1) {
+                // Stage: Pictorial (Synced)
+                renderGrid(elGridF1, appState.f1.n, appState.f1.d, 'synced-v', appState.f2.d, 'pattern-blue');
+                renderGrid(elGridF2, appState.f2.n, appState.f2.d, 'synced-h', appState.f1.d, 'pattern-red');
+                
+                const commonD = appState.f1.d * appState.f2.d;
+                const newN1 = appState.f1.n * appState.f2.d;
+                const newN2 = appState.f2.n * appState.f1.d;
+
+                elEqF1.innerText = `${appState.f1.n}/${appState.f1.d} × (${appState.f2.d}/${appState.f2.d}) = ${newN1}/${commonD}`;
+                elEqF2.innerText = `${appState.f2.n}/${appState.f2.d} × (${appState.f1.d}/${appState.f1.d}) = ${newN2}/${commonD}`;
+                elEqF1.style.opacity = '1';
+                elEqF2.style.opacity = '1';
+                
+                elBtnText.innerHTML = '<i class="fa-solid fa-plus"></i> รวมเศษส่วน (Add!)';
+                elBtnAction.className = 'group relative px-8 py-4 bg-emerald-500 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden';
+                
+                elStepTitle.innerText = 'ขั้นที่ 2: วางซ้อนเพื่อทำตัวส่วนให้เท่ากัน (Pictorial Stage)';
+                elStepDesc.innerText = 'เมื่อนำแผ่นแนวนอนมาซ้อนแนวตั้ง ตารางจะถูกตัดแบ่งเป็นชิ้นย่อยเท่าๆ กัน (คูณตัวส่วน) สังเกตการเปลี่ยนของตัวเลขในสมการที่สอดคล้องกับภาพ';
+                
+                // Disable controls
+                document.querySelectorAll('button[onclick^="changeFrac"]').forEach(b => b.disabled = true);
+                document.querySelectorAll('button[onclick^="changeFrac"]').forEach(b => b.classList.add('opacity-50', 'cursor-not-allowed'));
+            }
+            else if (appState.step === 2) {
+                // Stage: Abstract (Added)
+                elResultArea.classList.remove('hidden');
+                elBtnText.innerHTML = '<i class="fa-solid fa-rotate-right"></i> สร้างโจทย์ใหม่';
+                elBtnAction.className = 'group relative px-8 py-4 bg-slate-700 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden';
+                
+                elStepTitle.innerText = 'ขั้นที่ 3: สรุปผลรวม (Abstract Stage)';
+                elStepDesc.innerText = 'เมื่อขนาดของหน่วยตารางเท่ากันแล้ว (ตัวส่วนเท่ากัน) เราจึงสามารถนำชิ้นส่วนแรเงา (ตัวเศษ) มารวมกันได้อย่างสมเหตุสมผล';
+                
+                renderFinalGrids();
+            }
+        }
+
+        function renderFinalGrids() {
+            elFinalGrids.innerHTML = '';
+            const commonD = appState.f1.d * appState.f2.d;
+            const newN1 = appState.f1.n * appState.f2.d;
+            const newN2 = appState.f2.n * appState.f1.d;
+            const totalN = newN1 + newN2;
+            
+            // Calculate how many full unit squares are needed
+            const numGrids = Math.ceil(totalN / commonD);
+            let cellsToFillBlue = newN1;
+            let cellsToFillRed = newN2;
+
+            for (let g = 0; g < numGrids; g++) {
+                const container = document.createElement('div');
+                container.className = 'grid-container';
+                container.style.gridTemplateColumns = `repeat(${appState.f1.d}, 1fr)`;
+                container.style.gridTemplateRows = `repeat(${appState.f2.d}, 1fr)`;
+                
+                for (let i = 0; i < commonD; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell w-full h-full';
+                    
+                    if (cellsToFillBlue > 0) {
+                        cell.classList.add('pattern-blue');
+                        cellsToFillBlue--;
+                    } else if (cellsToFillRed > 0) {
+                        cell.classList.add('pattern-red');
+                        cellsToFillRed--;
+                    } else {
+                        cell.classList.add('bg-white');
+                    }
+                    
+                    container.appendChild(cell);
+                }
+                elFinalGrids.appendChild(container);
+            }
+
+            // Simplify fraction visually (Optional for prototype, keeping it literal for now)
+            const isMixed = totalN > commonD;
+            let mathString = `<span class="text-brand-blue">${newN1}/${commonD}</span> + <span class="text-brand-red">${newN2}/${commonD}</span> = <span class="text-brand-purple">${totalN}/${commonD}</span>`;
+            
+            if (isMixed) {
+                const whole = Math.floor(totalN / commonD);
+                const remainder = totalN % commonD;
+                if (remainder === 0) {
+                    mathString += ` = <span class="text-brand-purple font-black">${whole}</span>`;
+                } else {
+                    mathString += ` = <span class="text-brand-purple font-black">${whole} <span class="text-lg">${remainder}/${commonD}</span></span>`;
+                }
+            }
+            
+            document.getElementById('final-equation').innerHTML = mathString;
+            document.getElementById('final-explanation').innerText = 
+                `แผ่นตารางถูกแบ่งเป็นหน่วยย่อยใหม่ทั้งหมด ${commonD} ช่อง (ส่วน) มีส่วนแรเงาสีน้ำเงิน ${newN1} ช่อง และสีแดง ${newN2} ช่อง นำมารวมกันได้ทั้งหมด ${totalN} ช่อง (เศษ)`;
+        }
+
+        function changeFrac(fracNum, part, amount) {
+            if (appState.step !== 0) return; // Only allow changes in step 0
+            
+            let f = fracNum === 1 ? appState.f1 : appState.f2;
+            
+            if (part === 'd') {
+                f.d += amount;
+                if (f.d < MIN_D) f.d = MIN_D;
+                if (f.d > MAX_D) f.d = MAX_D;
+                // Ensure numerator is not greater than denominator (for simplicity in this basic demo, though improper is fine, proper is better for start)
+                if (f.n >= f.d) f.n = f.d - 1; 
+                if (f.n < 1) f.n = 1;
+            } else if (part === 'n') {
+                f.n += amount;
+                if (f.n < 1) f.n = 1;
+                if (f.n >= f.d) f.n = f.d - 1; // Keep it as a proper fraction
+            }
+            
+            updateUI();
+        }
+
+        function handleAction() {
+            if (appState.step === 0) {
+                appState.step = 1; // Go to Sync
+            } else if (appState.step === 1) {
+                appState.step = 2; // Go to Add
+            } else {
+                randomizeQuest(); // Reset and new
+            }
+            updateUI();
+        }
+
+        function resetApp() {
+            appState.step = 0;
+            appState.f1 = { n: 1, d: 2 };
+            appState.f2 = { n: 1, d: 3 };
+            updateUI();
+        }
+
+        function randomizeQuest() {
+            appState.step = 0;
+            // Generate random proper fractions
+            const generateF = () => {
+                const d = Math.floor(Math.random() * (MAX_D - MIN_D + 1)) + MIN_D;
+                const n = Math.floor(Math.random() * (d - 1)) + 1;
+                return { n, d };
+            };
+            
+            appState.f1 = generateF();
+            let newF2 = generateF();
+            // Try to avoid identical denominators for learning purpose
+            while(newF2.d === appState.f1.d && (MAX_D - MIN_D > 0)) {
+                newF2 = generateF();
+            }
+            appState.f2 = newF2;
+            
+            updateUI();
+        }
+
+        // Initialize App
+        window.onload = () => {
+            updateUI();
+        };
+
+    </script>
+</body>
+</html>
